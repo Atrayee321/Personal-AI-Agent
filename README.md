@@ -57,3 +57,17 @@ This bot uses **long polling**, so it needs a continuously running background pr
 - No automatic reminders or iMessage integration in this starter edition.
 - To remove stored data, stop the app and securely manage/delete the database file.
 - This implementation is intended for a single running bot instance; do not run multiple pollers with the same Telegram token.
+
+## Streamlit web dashboard (separate from Telegram)
+
+The website is hosted on Streamlit Community Cloud. Deploy this repository with main file path `streamlit_app.py`, branch `main`. Set the following in **Streamlit Cloud → App settings → Secrets** (do not commit secrets):
+
+```toml
+APP_PASSWORD = "choose-a-long-private-password"
+GEMINI_API_KEY = "your-private-gemini-api-key"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
+```
+
+The model must be enabled for your Gemini API key; availability and free quotas vary. For local testing, create `.streamlit/secrets.toml` based on `.streamlit/secrets.toml.example` and run `streamlit run streamlit_app.py`.
+
+Web chat, notes, and tasks live only in the browser session; they may disappear after restart/reconnect and are not synchronized with the Telegram SQLite database. The app uses one shared password and is not suitable for multi-user private accounts. Streamlit hosting does not keep the Telegram polling bot running continuously. The Telegram bot must run separately on an always-on host.
