@@ -12,7 +12,7 @@ A personal AI assistant with a **Streamlit web dashboard** and a separate **Tele
 ```toml
 APP_PASSWORD = "choose-a-long-unique-password"
 AI_PROVIDER = "gemini"
-AI_MODEL = "gemini-2.0-flash"
+AI_MODEL = "gemini-3.8-flash"
 GEMINI_API_KEY = "your-private-gemini-api-key"
 ```
 
