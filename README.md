@@ -1,12 +1,12 @@
 # Personal AI Agent — Telegram Edition
 
-A deployable Python personal assistant controlled from Telegram. Features: OpenAI-powered chat, per-user SQLite conversation memory, notes, tasks, basic authorization, Docker deployment. This is an original starter implementation based on the user's description of a tutorial, **not** a verified reproduction of the video's exact code. Native iMessage integration is **not included**.
+A deployable Python personal assistant controlled from Telegram. Features: Gemini-powered chat, per-user SQLite conversation memory, notes, tasks, basic authorization, Docker deployment. This is an original starter implementation based on the user's description of a tutorial, **not** a verified reproduction of the video's exact code. Native iMessage integration is **not included**.
 
 ## Requirements
 - Python 3.11–3.12 (or Docker)
 - Telegram bot token from [@BotFather](https://t.me/BotFather)
 - Your numeric Telegram user ID (e.g. from [@userinfobot](https://t.me/userinfobot))
-- OpenAI API key with available API billing (ChatGPT subscription does not include API usage)
+- Gemini API key from https://aistudio.google.com/apikey (free-tier availability and quotas depend on account and model)
 
 ## Local setup (macOS / Linux)
 ```bash
@@ -17,7 +17,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 ```
-Edit `.env` and fill in the three required values. Never commit or share `.env`.
+Edit `.env` and fill in `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS`, and `GEMINI_API_KEY`. The default model is `gemini-3.1-flash-lite`; availability and free-tier quotas vary. Never commit or share `.env`.
 
 Run:
 ```bash
@@ -51,7 +51,7 @@ This bot uses **long polling**, so it needs a continuously running background pr
 
 ## Security and limitations
 - Only numeric IDs in `TELEGRAM_ALLOWED_USER_IDS` can use the bot. Keep the token and API key private.
-- AI requests are sent to the configured OpenAI API. Chat and notes/tasks are stored locally in unencrypted SQLite; secure your host and backups.
+- AI requests are sent to the configured Google Gemini API. Chat and notes/tasks are stored locally in unencrypted SQLite; secure your host and backups.
 - Chat messages are capped at 6000 characters; model output is limited for cost control.
 - The bot cannot send emails, access accounts, execute shell commands, browse the web, or act on third-party services. No such abilities are implied.
 - No automatic reminders or iMessage integration in this starter edition.
