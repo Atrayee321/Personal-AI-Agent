@@ -4,9 +4,12 @@ The web interface intentionally uses session-scoped notes, tasks and chat.
 They may disappear after inactivity/restart; Telegram's SQLite database is separate.
 """
 import hmac
+import logging
 import os
 
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 st.set_page_config(page_title="Personal AI Agent", page_icon="🤖", layout="centered")
 
@@ -108,9 +111,11 @@ if page == "AI Chat":
                 with st.spinner("Thinking..."):
                     try:
                         reply = get_reply(st.session_state.messages)
-                    except Exception:
+                    except Exception as exc:
                         reply = None
-                        st.error("AI request failed. Check provider, API key, model, and quota in your Streamlit Secrets.")
+                        logger.exception("AI provider request failed")
+                        st.error("AI request failed. Open Streamlit Cloud → Manage app → Logs to see the provider error and status code. Do not share API keys or full unredacted logs.")
+                        st.caption(f"Error type: {type(exc).__name__}. Provider: {setting('AI_PROVIDER', 'gemini')}. Model: {setting('AI_MODEL', 'gemini-2.0-flash')}.")
                     if reply:
                         st.write(reply)
                         st.session_state.messages.append({"role": "assistant", "content": reply})
