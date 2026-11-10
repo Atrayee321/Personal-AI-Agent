@@ -1,7 +1,8 @@
 import logging
 import os
 from dotenv import load_dotenv
-from openai import AsyncOpenAI
+from google import genai
+from google.genai import types
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 from agent.storage import Storage
@@ -13,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 def config():
     token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-    key = os.getenv("OPENAI_API_KEY", "").strip()
+    key = os.getenv("GEMINI_API_KEY", "").strip()
     raw_ids = os.getenv("TELEGRAM_ALLOWED_USER_IDS", "").strip()
     if not token or not key or not raw_ids:
-        raise RuntimeError("Set TELEGRAM_BOT_TOKEN, OPENAI_API_KEY, and TELEGRAM_ALLOWED_USER_IDS in .env")
+        raise RuntimeError("Set TELEGRAM_BOT_TOKEN, GEMINI_API_KEY, and TELEGRAM_ALLOWED_USER_IDS in .env")
     try:
         allowed = {int(item.strip()) for item in raw_ids.split(",") if item.strip()}
     except ValueError as exc:
@@ -111,14 +112,16 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     storage = context.application.bot_data["storage"]
     user_id = update.effective_user.id
-    messages = [{"role": "system", "content": "You are a helpful personal assistant. Never claim to have executed an external action unless a tool actually did it. Be concise and clear."}]
-    messages += storage.history(user_id)
+    messages = storage.history(user_id)
     messages.append({"role": "user", "content": text})
+    contents = [types.Content(role="user" if item["role"] == "user" else "model", parts=[types.Part.from_text(text=item["content"])]) for item in messages]
     try:
-        response = await context.application.bot_data["client"].chat.completions.create(
-            model=context.application.bot_data["model"], messages=messages, max_tokens=800
+        response = await context.application.bot_data["client"].aio.models.generate_content(
+            model=context.application.bot_data["model"],
+            contents=contents,
+            config=types.GenerateContentConfig(system_instruction="You are a helpful personal assistant. Never claim to have executed an external action unless a tool actually did it. Be concise and clear.", max_output_tokens=800),
         )
-        answer = response.choices[0].message.content or "No response generated."
+        answer = response.text or "No response generated."
     except Exception:
         logger.exception("AI request failed")
         await update.message.reply_text("AI service unavailable. Check API configuration and logs.")
@@ -132,7 +135,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     token, key, allowed = config()
     app = ApplicationBuilder().token(token).build()
-    app.bot_data.update({"allowed": allowed, "client": AsyncOpenAI(api_key=key), "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"), "storage": Storage(os.getenv("DATABASE_PATH", "./data/agent.db"))})
+    app.bot_data.update({"allowed": allowed, "client": genai.Client(api_key=key), "model": os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite"), "storage": Storage(os.getenv("DATABASE_PATH", "./data/agent.db"))})
     for command, handler in [("start", start), ("help", help_cmd), ("note", note), ("notes", notes), ("task", task), ("tasks", tasks), ("done", done), ("clear", clear)]:
         app.add_handler(CommandHandler(command, handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, chat))
