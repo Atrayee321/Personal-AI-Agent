@@ -1,5 +1,8 @@
 # Personal AI Agent — Telegram Edition
 
+**Live website:** [Open Personal AI Agent](https://personal-ai-agent-ddckhx3sqrmfdhpknnepkc.streamlit.app/)
+
+
 A deployable Python personal assistant controlled from Telegram. Features: Gemini-powered chat, per-user SQLite conversation memory, notes, tasks, basic authorization, Docker deployment. This is an original starter implementation based on the user's description of a tutorial, **not** a verified reproduction of the video's exact code. Native iMessage integration is **not included**.
 
 ## Requirements
