@@ -6,7 +6,6 @@ They may disappear after inactivity/restart; Telegram's SQLite database is separ
 import hmac
 import logging
 import os
-import time
 
 import streamlit as st
 
@@ -44,59 +43,36 @@ def authenticate():
     st.stop()
 
 
-SYSTEM_PROMPT = (
-    "You are a helpful personal assistant. Answer clearly and concisely unless "
-    "the user asks for detail. Never claim to perform actions you cannot perform."
-)
-
-
-def stream_reply(messages):
-    """Yield response chunks as the provider generates them."""
+def get_reply(messages):
     provider = setting("AI_PROVIDER", "gemini").lower().strip()
     model = setting("AI_MODEL", "gemini-3.1-flash-lite")
-    recent = messages[-6:]
     if provider == "gemini":
         from google import genai
-        from google.genai import types
-
         key = setting("GEMINI_API_KEY")
         if not key:
             raise ValueError("GEMINI_API_KEY is missing from Streamlit Secrets.")
         client = genai.Client(api_key=key)
         transcript = "\n\n".join(
             ("User" if msg["role"] == "user" else "Assistant") + ": " + msg["content"]
-            for msg in recent
+            for msg in messages[-12:]
         )
-        stream = client.models.generate_content_stream(
+        result = client.models.generate_content(
             model=model,
-            contents=SYSTEM_PROMPT + "\n\n" + transcript,
-            config=types.GenerateContentConfig(
-                max_output_tokens=512,
-                temperature=0.5,
-            ),
+            contents="You are a helpful personal assistant. Never claim to perform actions you cannot perform.\n\n" + transcript,
         )
-        for chunk in stream:
-            if chunk.text:
-                yield chunk.text
-        return
+        return result.text or "No answer returned."
     if provider == "openai":
         from openai import OpenAI
-
         key = setting("OPENAI_API_KEY")
         if not key:
             raise ValueError("OPENAI_API_KEY is missing from Streamlit Secrets.")
         client = OpenAI(api_key=key)
-        stream = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "system", "content": SYSTEM_PROMPT}] + recent,
-            max_tokens=512,
-            stream=True,
+        result = client.chat.completions.create(
+            model=setting("AI_MODEL", "gpt-4o-mini"),
+            messages=[{"role": "system", "content": "You are a helpful personal assistant. Never claim to perform actions you cannot perform."}] + messages[-12:],
+            max_tokens=800,
         )
-        for chunk in stream:
-            content = chunk.choices[0].delta.content
-            if content:
-                yield content
-        return
+        return result.choices[0].message.content or "No answer returned."
     raise ValueError("AI_PROVIDER must be 'gemini' or 'openai'.")
 
 
@@ -132,17 +108,17 @@ if page == "AI Chat":
             with st.chat_message("user"):
                 st.write(question)
             with st.chat_message("assistant"):
-                started = time.perf_counter()
-                reply = ""
-                try:
-                    reply = st.write_stream(stream_reply(st.session_state.messages))
-                except Exception as exc:
-                    logger.exception("AI provider request failed")
-                    st.error("AI request failed. Check Streamlit Cloud → Manage app → Logs for the error code. Never share API keys.")
-                    st.caption(f"Error type: {type(exc).__name__}. Provider: {setting('AI_PROVIDER', 'gemini')}. Model: {setting('AI_MODEL', 'gemini-3.1-flash-lite')}.")
-                if reply:
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    st.caption(f"Response time: {time.perf_counter() - started:.1f} seconds")
+                with st.spinner("Thinking..."):
+                    try:
+                        reply = get_reply(st.session_state.messages)
+                    except Exception as exc:
+                        reply = None
+                        logger.exception("AI provider request failed")
+                        st.error("AI request failed. Open Streamlit Cloud → Manage app → Logs to see the provider error and status code. Do not share API keys or full unredacted logs.")
+                        st.caption(f"Error type: {type(exc).__name__}. Provider: {setting('AI_PROVIDER', 'gemini')}. Model: {setting('AI_MODEL', 'gemini-3.1-flash-lite')}.")
+                    if reply:
+                        st.write(reply)
+                        st.session_state.messages.append({"role": "assistant", "content": reply})
 
 elif page == "Notes":
     with st.form("note_form", clear_on_submit=True):
