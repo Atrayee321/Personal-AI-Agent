@@ -45,7 +45,7 @@ def authenticate():
 
 def get_reply(messages):
     provider = setting("AI_PROVIDER", "gemini").lower().strip()
-    model = setting("AI_MODEL", "gemini-3.8-flash")
+    model = setting("AI_MODEL", "gemini-3.1-flash-lite")
     if provider == "gemini":
         from google import genai
         key = setting("GEMINI_API_KEY")
@@ -115,7 +115,7 @@ if page == "AI Chat":
                         reply = None
                         logger.exception("AI provider request failed")
                         st.error("AI request failed. Open Streamlit Cloud → Manage app → Logs to see the provider error and status code. Do not share API keys or full unredacted logs.")
-                        st.caption(f"Error type: {type(exc).__name__}. Provider: {setting('AI_PROVIDER', 'gemini')}. Model: {setting('AI_MODEL', 'gemini-3.8-flash')}.")
+                        st.caption(f"Error type: {type(exc).__name__}. Provider: {setting('AI_PROVIDER', 'gemini')}. Model: {setting('AI_MODEL', 'gemini-3.1-flash-lite')}.")
                     if reply:
                         st.write(reply)
                         st.session_state.messages.append({"role": "assistant", "content": reply})
