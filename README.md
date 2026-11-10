@@ -20,15 +20,6 @@ A deployable Python personal assistant controlled from Telegram. Features: Gemin
 - To remove stored data, stop the app and securely manage/delete the database file.
 - This implementation is intended for a single running bot instance; do not run multiple pollers with the same Telegram token.
 
-## Streamlit web dashboard (separate from Telegram)
-
-The website is hosted on Streamlit Community Cloud. Deploy this repository with main file path `streamlit_app.py`, branch `main`. Set the following in **Streamlit Cloud → App settings → Secrets** (do not commit secrets):
-
-```toml
-APP_PASSWORD = "choose-a-long-private-password"
-GEMINI_API_KEY = "your-private-gemini-api-key"
-GEMINI_MODEL = "gemini-3.1-flash-lite"
-```
 
 The model must be enabled for your Gemini API key; availability and free quotas vary. For local testing, create `.streamlit/secrets.toml` based on `.streamlit/secrets.toml.example` and run `streamlit run streamlit_app.py`.
 
