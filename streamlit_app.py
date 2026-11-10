@@ -2,10 +2,12 @@
 import hmac
 import logging
 import os
+import time
 
 import streamlit as st
 from google import genai
 from google.genai import types
+from google.genai.errors import ServerError
 
 logger = logging.getLogger(__name__)
 st.set_page_config(page_title="Personal AI Agent", page_icon="🤖", layout="centered")
@@ -53,15 +55,22 @@ def generate_answer(messages):
         )
         for item in messages[-12:]
     ]
-    response = client.models.generate_content(
-        model=setting("GEMINI_MODEL", "gemini-3.1-flash-lite"),
-        contents=contents,
-        config=types.GenerateContentConfig(
-            system_instruction="You are a helpful personal AI assistant. Never claim to have performed actions you cannot perform.",
-            max_output_tokens=800,
-        ),
-    )
-    return response.text or "No response generated."
+    model = setting("GEMINI_MODEL", "gemini-3.1-flash-lite")
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction="You are a helpful personal AI assistant. Never claim to have performed actions you cannot perform.",
+                    max_output_tokens=800,
+                ),
+            )
+            return response.text or "No response generated."
+        except ServerError as exc:
+            if getattr(exc, "code", None) != 503 or attempt == 2:
+                raise
+            time.sleep(2 ** attempt)
 
 
 require_login()
@@ -100,7 +109,7 @@ if page == "AI Chat":
                         answer = generate_answer(st.session_state.messages)
                     except Exception as exc:
                         logger.exception("Gemini request failed")
-                        st.error("Gemini request failed. Check your model access, API quota, and Streamlit app logs.")
+                        st.error("Gemini is temporarily unavailable or the request failed. If this persists, check your model access, API quota, and Streamlit logs.")
                         st.caption(f"Error type: {type(exc).__name__}; model: {setting('GEMINI_MODEL', 'gemini-3.1-flash-lite')}")
                     else:
                         st.write(answer)
