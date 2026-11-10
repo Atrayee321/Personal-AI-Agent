@@ -1,69 +1,59 @@
-# Personal AI Agent
+# Personal AI Agent — Telegram Edition
 
-A personal AI assistant with a **Streamlit web dashboard** and a separate **Telegram bot**. The web app supports AI chat, notes and tasks; Telegram bot code remains available for deployment on a continuously running worker.
+A deployable Python personal assistant controlled from Telegram. Features: OpenAI-powered chat, per-user SQLite conversation memory, notes, tasks, basic authorization, Docker deployment. This is an original starter implementation based on the user's description of a tutorial, **not** a verified reproduction of the video's exact code. Native iMessage integration is **not included**.
 
-## Free Streamlit Community Cloud deployment (no hosting payment card)
+## Requirements
+- Python 3.11–3.12 (or Docker)
+- Telegram bot token from [@BotFather](https://t.me/BotFather)
+- Your numeric Telegram user ID (e.g. from [@userinfobot](https://t.me/userinfobot))
+- OpenAI API key with available API billing (ChatGPT subscription does not include API usage)
 
-1. Open https://share.streamlit.io/ and sign in with GitHub.
-2. Click **Create app** → **Deploy a public app from GitHub**.
-3. Choose repository `Atrayee321/Personal-AI-Agent`, branch `main`, main file path `streamlit_app.py`.
-4. Open **Advanced settings** or **App settings → Secrets** and paste the following, replacing placeholders:
-
-```toml
-APP_PASSWORD = "choose-a-long-unique-password"
-AI_PROVIDER = "gemini"
-AI_MODEL = "gemini-3.1-flash-lite"
-GEMINI_API_KEY = "your-private-gemini-api-key"
-```
-
-Create a Gemini API key at https://aistudio.google.com/apikey . Free API allowances depend on country, account eligibility, model and quota. If that model is unavailable, choose a supported Gemini model from AI Studio and change `AI_MODEL` accordingly. Do **not** put secrets in GitHub files or share them in chat.
-
-5. Click **Deploy**. When the app starts, enter your `APP_PASSWORD` to unlock it.
-
-### OpenAI alternative
-
-Use the following secrets instead (OpenAI API billing is separate from ChatGPT subscriptions):
-
-```toml
-APP_PASSWORD = "choose-a-long-unique-password"
-AI_PROVIDER = "openai"
-AI_MODEL = "gpt-4o-mini"
-OPENAI_API_KEY = "your-private-openai-api-key"
-```
-
-## Important limitations
-
-- Streamlit Community Cloud may sleep when inactive. It does not run the Telegram polling bot 24/7.
-- Web chat history, notes and tasks are **session-only**; they can disappear after restart, session expiration or reconnect. They are not synchronized with Telegram's SQLite database.
-- This is a single-password demo app, not a multi-user production authentication system. Avoid storing highly sensitive personal data.
-- The AI can respond to text but cannot execute external actions, browse, send emails or manage other accounts.
-- This is an original implementation based on the tutorial description, not a copy of its exact code.
-
-## Local Streamlit setup
-
+## Local setup (macOS / Linux)
 ```bash
 git clone https://github.com/Atrayee321/Personal-AI-Agent.git
 cd Personal-AI-Agent
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-mkdir -p .streamlit
-cp .streamlit/secrets.toml.example .streamlit/secrets.toml
-# Edit .streamlit/secrets.toml to add private values
-streamlit run streamlit_app.py
+cp .env.example .env
 ```
+Edit `.env` and fill in the three required values. Never commit or share `.env`.
 
-## Telegram bot (separate deployment)
+Run:
+```bash
+python -m agent.main
+```
+Open your bot in Telegram, tap Start, and send `/help`.
 
-For the Telegram bot, copy `.env.example` to `.env` and fill in `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS` and `OPENAI_API_KEY`. Run `python -m agent.main` or `docker compose up -d --build` on an always-on machine. Docker configuration is for the Telegram bot, **not** Streamlit hosting.
+## Commands
+- `/note Buy milk` — save a note
+- `/notes` — list latest notes
+- `/task Submit assignment` — create task
+- `/tasks` — list tasks
+- `/done 1` — complete task by ID
+- `/clear` — delete stored AI chat history (notes/tasks remain)
+- Ordinary messages — AI chat
 
-Telegram commands: `/help`, `/note`, `/notes`, `/task`, `/tasks`, `/done`, `/clear`.
-
-## Testing
-
+## Test
 ```bash
 python -m unittest discover -s tests -v
-python -m compileall -q agent streamlit_app.py
+python -m compileall -q agent
 ```
 
-Never commit `.env`, `.streamlit/secrets.toml`, SQLite databases, or API tokens.
+## Docker deployment
+1. Install Docker Engine / Docker Desktop on a computer or VPS.
+2. Copy this folder to the server and configure `.env` there.
+3. Run `docker compose up -d --build`.
+4. Check `docker compose logs -f agent`.
+5. Keep `./data` on persistent storage; backups should include `data/agent.db`.
+
+This bot uses **long polling**, so it needs a continuously running background process, not a static site or request-only serverless hosting. A paid or free-tier VPS/container host with an always-on worker and persistent disk can work; free hosting availability varies. No inbound HTTP port is needed.
+
+## Security and limitations
+- Only numeric IDs in `TELEGRAM_ALLOWED_USER_IDS` can use the bot. Keep the token and API key private.
+- AI requests are sent to the configured OpenAI API. Chat and notes/tasks are stored locally in unencrypted SQLite; secure your host and backups.
+- Chat messages are capped at 6000 characters; model output is limited for cost control.
+- The bot cannot send emails, access accounts, execute shell commands, browse the web, or act on third-party services. No such abilities are implied.
+- No automatic reminders or iMessage integration in this starter edition.
+- To remove stored data, stop the app and securely manage/delete the database file.
+- This implementation is intended for a single running bot instance; do not run multiple pollers with the same Telegram token.
